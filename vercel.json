@@ -1,16 +1,16 @@
 {
-    "version": 2,
-    "builds": [
-      {
-        "src": "server.js",
-        "use": "@vercel/node"
-      }
-    ],
-    "routes": [
-      {
-        "src": "/(.*)",
-        "dest": "server.js"
-      }
-    ]
-  }
-  
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    { "src": "/terms", "dest": "/public/terms.html" },
+    { "src": "/privacy", "dest": "/public/privacy.html" },
+    { "src": "/auth/twitter", "dest": "/server.js" },
+    { "src": "/callback", "dest": "/server.js" },
+    { "src": "/", "dest": "/server.js" }
+  ]
+}
