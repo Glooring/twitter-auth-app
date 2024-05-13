@@ -1,5 +1,6 @@
 const express = require('express');
 const OAuth = require('oauth').OAuth;
+const path = require('path');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -38,6 +39,15 @@ app.get('/callback', (req, res) => {
       res.send('Authentication successful!');
     }
   });
+});
+
+// Serve terms of service and privacy policy
+app.get('/terms', (req, res) => {
+  res.sendFile(path.join(__dirname, 'terms.html'));
+});
+
+app.get('/privacy', (req, res) => {
+  res.sendFile(path.join(__dirname, 'privacy.html'));
 });
 
 app.listen(port, () => {
