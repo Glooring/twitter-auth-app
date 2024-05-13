@@ -1,82 +1,60 @@
 const express = require('express');
+const OAuth = require('oauth').OAuth;
 const path = require('path');
-const session = require('express-session');
-const passport = require('passport');
-const TwitterStrategy = require('passport-twitter').Strategy;
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Twitter API credentials
 const consumerKey = 'v71tqJheXMkovRUcb5UGfylps';
 const consumerSecret = 'uT6fY1GKYlQbmyAK2QpTGzvzVMnWnAKSdqfcubeG6cwh0cfyfa';
 const callbackURL = 'https://twitter-auth-app.vercel.app/callback';
 
-// Passport session setup
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
+// Initialize OAuth
+const twitterOAuth = new OAuth(
+  'https://api.twitter.com/oauth/request_token',
+  'https://api.twitter.com/oauth/access_token',
+  consumerKey,
+  consumerSecret,
+  '1.0A',
+  callbackURL,
+  'HMAC-SHA1'
+);
 
-passport.deserializeUser((obj, done) => {
-  done(null, obj);
-});
-
-// Use the TwitterStrategy within Passport
-passport.use(new TwitterStrategy({
-    consumerKey: consumerKey,
-    consumerSecret: consumerSecret,
-    callbackURL: callbackURL
-  },
-  (token, tokenSecret, profile, done) => {
-    process.nextTick(() => {
-      return done(null, profile);
-    });
-  }
-));
-
-// Express middleware setup
-app.use(session({ secret: 'secret', resave: true, saveUninitialized: true }));
-app.use(passport.initialize());
-app.use(passport.session());
-
-app.get('/', (req, res) => {
-  res.send('<a href="/auth/twitter">Sign in with Twitter</a>');
-});
-
-app.get('/auth/twitter', passport.authenticate('twitter'));
-
-app.get('/callback', passport.authenticate('twitter', { failureRedirect: '/' }), (req, res) => {
-  res.redirect('/profile');
-});
-
-app.get('/profile', ensureAuthenticated, (req, res) => {
-  res.send(`Hello, ${req.user.username}!`);
-});
-
-app.get('/logout', (req, res) => {
-  req.logout((err) => {
-    if (err) {
-      return next(err);
+// Twitter authentication route
+app.get('/auth/twitter', (req, res) => {
+  twitterOAuth.getOAuthRequestToken((error, oauthToken, oauthTokenSecret, results) => {
+    if (error) {
+      res.send('Authentication failed!');
+    } else {
+      res.redirect(`https://twitter.com/oauth/authenticate?oauth_token=${oauthToken}`);
     }
-    res.redirect('/');
   });
 });
 
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.redirect('/');
-}
+// Callback URL route
+app.get('/callback', (req, res) => {
+  const oauthToken = req.query.oauth_token;
+  const oauthVerifier = req.query.oauth_verifier;
+  twitterOAuth.getOAuthAccessToken(oauthToken, null, oauthVerifier, (error, oauthAccessToken, oauthAccessTokenSecret, results) => {
+    if (error) {
+      res.send('Authentication failed!');
+    } else {
+      res.send('Authentication successful!');
+    }
+  });
+});
 
 // Serve terms of service and privacy policy
-app.get('/terms', (req, res) => {
-  res.sendFile(path.join(__dirname, 'terms.html'));
+app.use('/terms', express.static(path.join(__dirname, 'public/terms.html')));
+app.use('/privacy', express.static(path.join(__dirname, 'public/privacy.html')));
+
+// Default route
+app.get('/', (req, res) => {
+  res.send('Welcome to the Twitter OAuth App');
 });
 
-app.get('/privacy', (req, res) => {
-  res.sendFile(path.join(__dirname, 'privacy.html'));
-});
-
+// Start server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
