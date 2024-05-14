@@ -10,7 +10,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Twitter API credentials
-const consumerKey = process.env.API_KEY;;
+const consumerKey = process.env.API_KEY;
 const consumerSecret = process.env.API_SECRET_KEY;
 const callbackURL = 'https://twitter-auth-app.vercel.app/callback';
 
