@@ -9,10 +9,15 @@ require('dotenv').config();  // Load environment variables
 const app = express();
 const port = process.env.PORT || 3000;
 
+
+
 // Twitter API credentials
 const consumerKey = process.env.API_KEY;
 const consumerSecret = process.env.API_SECRET_KEY;
-const callbackURL = 'https://twitter-auth-app.vercel.app/callback';
+// Determine the callback URL based on environment
+const callbackURL = process.env.NODE_ENV === 'production'
+    ? 'https://twitter-auth-app.vercel.app/callback'
+    : 'http://localhost:3000/callback';
 
 // Telegram bot token and chat ID
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
