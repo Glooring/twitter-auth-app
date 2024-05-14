@@ -65,42 +65,40 @@ app.get('/', (req, res) => {
 });
 
 
-// Function to fetch latest tweets from a user
+// Function to fetch the latest tweets from a user
 const fetchLatestTweets = async (screenName) => {
   const url = `https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=${screenName}&count=1`;
   try {
-      const response = await axios.get(url, {
-          headers: {
-              Authorization: `OAuth oauth_consumer_key="${consumerKey}", oauth_token="${oauthAccessToken}", oauth_signature_method="HMAC-SHA1", oauth_timestamp="${Math.floor(new Date().getTime() / 1000)}", oauth_nonce="${Math.random().toString(36).substring(7)}", oauth_version="1.0"`
-          }
-      });
-      return response.data;
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: twitterOAuth.authHeader(
+          'https://api.twitter.com/1.1/statuses/user_timeline.json',
+          oauthAccessToken,
+          oauthAccessTokenSecret,
+          'GET'
+        )
+      }
+    });
+    return response.data;
   } catch (error) {
-      console.error('Error fetching tweets:', error);
+    console.error('Error fetching tweets:', error);
   }
 };
 
-// Function to check for new tweets
-let lastTweetId = null;
-const checkForNewTweets = async () => {
-    const tweets = await fetchLatestTweets('TheRoaringKitty');
-    if (tweets && tweets.length > 0) {
-        const latestTweet = tweets[0];
-        if (latestTweet.id_str !== lastTweetId) {
-            console.log('New tweet found:', latestTweet.text);
-            // Replace this with actual notification logic
-            // For example, send an email or a push notification
-            lastTweetId = latestTweet.id_str;
-        }
-    }
-};
+// Endpoint to get the latest tweet
+app.get('/latest-tweet', async (req, res) => {
+  if (!oauthAccessToken || !oauthAccessTokenSecret) {
+    return res.status(401).send('Not authenticated');
+  }
 
-// Schedule the tweet check to run every minute
-cron.schedule('* * * * *', () => {
-  if (oauthAccessToken && oauthAccessTokenSecret) {
-      checkForNewTweets();
+  const tweets = await fetchLatestTweets('TheRoaringKitty');
+  if (tweets && tweets.length > 0) {
+    res.json(tweets[0]);
+  } else {
+    res.status(404).send('No tweets found');
   }
 });
+
 
 // Start server
 app.listen(port, () => {

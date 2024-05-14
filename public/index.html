@@ -7,12 +7,32 @@
 </head>
 <body>
     <h1>Welcome to the Twitter OAuth App</h1>
-    <button id="authButton">Authenticate with Twitter</button>
+    <button id="auth-button">Authenticate with Twitter</button>
+    <div id="latest-tweet"></div>
 
     <script>
-        document.getElementById('authButton').addEventListener('click', function() {
+        document.getElementById('auth-button').addEventListener('click', () => {
             window.location.href = '/auth/twitter';
         });
+
+        async function fetchLatestTweet() {
+            try {
+                const response = await fetch('/latest-tweet');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const tweet = await response.json();
+                document.getElementById('latest-tweet').innerText = `Latest Tweet: ${tweet.text}`;
+            } catch (error) {
+                console.error('Error fetching latest tweet:', error);
+            }
+        }
+
+        // Poll for the latest tweet every minute
+        setInterval(fetchLatestTweet, 60000);
+
+        // Fetch the latest tweet on page load
+        fetchLatestTweet();
     </script>
 </body>
 </html>
