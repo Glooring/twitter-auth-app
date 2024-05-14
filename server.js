@@ -15,9 +15,7 @@ const port = process.env.PORT || 3000;
 const consumerKey = process.env.API_KEY;
 const consumerSecret = process.env.API_SECRET_KEY;
 // Determine the callback URL based on environment
-const callbackURL = process.env.NODE_ENV === 'production'
-    ? 'https://twitter-auth-app.vercel.app/callback'
-    : 'http://localhost:3000/callback';
+const callbackURL = 'http://localhost:3000/callback';  // Change to your local callback URL
 
 // Telegram bot token and chat ID
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
