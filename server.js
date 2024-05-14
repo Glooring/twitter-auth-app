@@ -9,12 +9,9 @@ require('dotenv').config();  // Load environment variables
 const app = express();
 const port = process.env.PORT || 3000;
 
-
-
 // Twitter API credentials
 const consumerKey = process.env.API_KEY;
 const consumerSecret = process.env.API_SECRET_KEY;
-// Determine the callback URL based on environment
 const callbackURL = 'http://localhost:3000/callback';  // Change to your local callback URL
 
 // Telegram bot token and chat ID
@@ -28,8 +25,6 @@ const bot = new TelegramBot(telegramBotToken, { polling: true });
 let oauthAccessToken = '';
 let oauthAccessTokenSecret = '';
 let twitterHandle = 'TheRoaringKitty';
-
-
 
 // Handle the /start command
 bot.onText(/\/start/, (msg) => {
@@ -61,11 +56,11 @@ const twitterOAuth = new OAuth(
   'HMAC-SHA1'
 );
 
-
 // Twitter authentication route
 app.get('/auth/twitter', (req, res) => {
   twitterOAuth.getOAuthRequestToken((error, oauthToken, oauthTokenSecret, results) => {
     if (error) {
+      console.error('Error obtaining OAuth request token:', error);  // Log the specific error
       res.send('Authentication failed!');
     } else {
       res.redirect(`https://twitter.com/oauth/authenticate?oauth_token=${oauthToken}`);
@@ -79,6 +74,7 @@ app.get('/callback', (req, res) => {
   const oauthVerifier = req.query.oauth_verifier;
   twitterOAuth.getOAuthAccessToken(oauthToken, null, oauthVerifier, (error, _oauthAccessToken, _oauthAccessTokenSecret, results) => {
     if (error) {
+      console.error('Error obtaining OAuth access token:', error);  // Log the specific error
       res.send('Authentication failed!');
     } else {
       oauthAccessToken = _oauthAccessToken;
@@ -103,7 +99,6 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
-
 
 // Function to fetch latest tweets from a user
 const fetchLatestTweets = async (screenName) => {
@@ -131,7 +126,6 @@ const sendTelegramMessage = (message) => {
     });
 };
 
-
 // Function to check for new tweets
 let lastTweetId = null;
 const checkForNewTweets = async () => {
@@ -146,7 +140,6 @@ const checkForNewTweets = async () => {
     }
   }
 };
-
 
 // Schedule the tweet check to run every minute
 cron.schedule('* * * * *', () => {
