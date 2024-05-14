@@ -3,6 +3,7 @@ const OAuth = require('oauth').OAuth;
 const path = require('path');
 const axios = require('axios');
 const cron = require('node-cron');
+const TelegramBot = require('node-telegram-bot-api');
 require('dotenv').config();  // Load environment variables
 
 const app = express();
@@ -12,6 +13,13 @@ const port = process.env.PORT || 3000;
 const consumerKey = process.env.API_KEY;;
 const consumerSecret = process.env.API_SECRET_KEY;
 const callbackURL = 'https://twitter-auth-app.vercel.app/callback';
+
+// Telegram bot token and chat ID
+const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+const chatId = process.env.TELEGRAM_CHAT_ID;
+
+// Initialize Telegram bot
+const bot = new TelegramBot(telegramBotToken, { polling: false });
 
 // Store OAuth tokens
 let oauthAccessToken = '';
@@ -64,43 +72,58 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
+// Start server
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
 
-// Function to fetch the latest tweets from a user
+
+// Function to fetch latest tweets from a user
 const fetchLatestTweets = async (screenName) => {
   const url = `https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=${screenName}&count=1`;
   try {
     const response = await axios.get(url, {
       headers: {
-        Authorization: twitterOAuth.authHeader(
-          'https://api.twitter.com/1.1/statuses/user_timeline.json',
-          oauthAccessToken,
-          oauthAccessTokenSecret,
-          'GET'
-        )
+        Authorization: `OAuth oauth_consumer_key="${consumerKey}", oauth_token="${oauthAccessToken}", oauth_signature_method="HMAC-SHA1", oauth_timestamp="${Math.floor(new Date().getTime() / 1000)}", oauth_nonce="${Math.random().toString(36).substring(7)}", oauth_version="1.0"`
       }
     });
     return response.data;
   } catch (error) {
-    console.error('Error fetching tweets:', error);
+    console.error('Error fetching tweets:', error.response ? error.response.data : error.message);
   }
 };
 
-// Endpoint to get the latest tweet
-app.get('/latest-tweet', async (req, res) => {
-  if (!oauthAccessToken || !oauthAccessTokenSecret) {
-    return res.status(401).send('Not authenticated');
-  }
+// Function to send Telegram message
+const sendTelegramMessage = (message) => {
+  bot.sendMessage(chatId, message)
+    .then(response => {
+      console.log('Message sent to Telegram:', response.text);
+    })
+    .catch(error => {
+      console.error('Error sending message to Telegram:', error.message);
+    });
+};
 
+
+// Function to check for new tweets
+let lastTweetId = null;
+const checkForNewTweets = async () => {
   const tweets = await fetchLatestTweets('TheRoaringKitty');
   if (tweets && tweets.length > 0) {
-    res.json(tweets[0]);
-  } else {
-    res.status(404).send('No tweets found');
+    const latestTweet = tweets[0];
+    if (latestTweet.id_str !== lastTweetId) {
+      console.log('New tweet found:', latestTweet.text);
+      // Send Telegram notification
+      sendTelegramMessage(`New tweet from TheRoaringKitty: ${latestTweet.text}`);
+      lastTweetId = latestTweet.id_str;
+    }
   }
-});
+};
 
 
-// Start server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+// Schedule the tweet check to run every minute
+cron.schedule('* * * * *', () => {
+  if (oauthAccessToken && oauthAccessTokenSecret) {
+    checkForNewTweets();
+  }
 });
