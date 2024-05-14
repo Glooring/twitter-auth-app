@@ -19,7 +19,12 @@ const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
 const chatId = process.env.TELEGRAM_CHAT_ID;
 
 // Initialize Telegram bot
-const bot = new TelegramBot(telegramBotToken, { polling: false });
+const bot = new TelegramBot(telegramBotToken, { polling: true });
+
+// Handle the /start command
+bot.onText(/\/start/, (msg) => {
+  bot.sendMessage(msg.chat.id, 'Tracking Twitter account: https://twitter.com/TheRoaringKitty');
+});
 
 // Store OAuth tokens
 let oauthAccessToken = '';
