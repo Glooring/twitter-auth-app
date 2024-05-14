@@ -21,14 +21,10 @@ const chatId = process.env.TELEGRAM_CHAT_ID;
 // Initialize Telegram bot
 const bot = new TelegramBot(telegramBotToken, { polling: true });
 
-// Handle the /start command
-bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'Tracking Twitter account: https://twitter.com/TheRoaringKitty');
-});
-
 // Store OAuth tokens
 let oauthAccessToken = '';
 let oauthAccessTokenSecret = '';
+let twitterHandle = 'TheRoaringKitty';
 
 
 // Initialize OAuth
@@ -41,6 +37,27 @@ const twitterOAuth = new OAuth(
   callbackURL,
   'HMAC-SHA1'
 );
+
+// Handle the /start command
+bot.onText(/\/start/, (msg) => {
+  bot.sendMessage(msg.chat.id, `Tracking Twitter account: https://twitter.com/${twitterHandle}`);
+});
+
+// Handle the /new command
+bot.onText(/\/new/, (msg) => {
+  bot.sendMessage(msg.chat.id, 'Please send the new Twitter account handle you want to track (without @).');
+  bot.once('message', (response) => {
+    if (response.text.startsWith('@')) {
+      bot.sendMessage(msg.chat.id, 'Please send the handle without the @ symbol.');
+    } else {
+      twitterHandle = response.text;
+      lastTweetId = null; // Reset the lastTweetId to track new tweets from the new handle
+      bot.sendMessage(msg.chat.id, `Now tracking Twitter account: https://twitter.com/${twitterHandle}`);
+    }
+  });
+});
+
+
 
 // Twitter authentication route
 app.get('/auth/twitter', (req, res) => {
