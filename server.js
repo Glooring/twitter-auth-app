@@ -61,12 +61,7 @@ app.use('/privacy', express.static(path.join(__dirname, 'public/privacy.html')))
 
 // Default route
 app.get('/', (req, res) => {
-  res.send('Welcome to the Twitter OAuth App');
-});
-
-// Start server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
 
