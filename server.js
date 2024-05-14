@@ -12,7 +12,7 @@ const port = process.env.PORT || 3000;
 // Twitter API credentials
 const consumerKey = process.env.API_KEY;
 const consumerSecret = process.env.API_SECRET_KEY;
-const callbackURL = 'http://localhost:3000/callback';  // Change to your local callback URL
+const callbackURL = 'http://localhost:3000/callback';  // Ensure this matches the callback URL in Twitter Developer portal
 
 // Telegram bot token and chat ID
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -60,7 +60,7 @@ const twitterOAuth = new OAuth(
 app.get('/auth/twitter', (req, res) => {
   twitterOAuth.getOAuthRequestToken((error, oauthToken, oauthTokenSecret, results) => {
     if (error) {
-      console.error('Error obtaining OAuth request token:', error);  // Log the specific error
+      console.error('Error obtaining OAuth request token:', error);
       res.send('Authentication failed!');
     } else {
       res.redirect(`https://twitter.com/oauth/authenticate?oauth_token=${oauthToken}`);
@@ -74,7 +74,7 @@ app.get('/callback', (req, res) => {
   const oauthVerifier = req.query.oauth_verifier;
   twitterOAuth.getOAuthAccessToken(oauthToken, null, oauthVerifier, (error, _oauthAccessToken, _oauthAccessTokenSecret, results) => {
     if (error) {
-      console.error('Error obtaining OAuth access token:', error);  // Log the specific error
+      console.error('Error obtaining OAuth access token:', error);
       res.send('Authentication failed!');
     } else {
       oauthAccessToken = _oauthAccessToken;
@@ -103,16 +103,15 @@ app.listen(port, () => {
 // Function to fetch latest tweets from a user
 const fetchLatestTweets = async (screenName) => {
   const url = `https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=${screenName}&count=1`;
-  try {
-    const response = await axios.get(url, {
-      headers: {
-        Authorization: `OAuth oauth_consumer_key="${consumerKey}", oauth_token="${oauthAccessToken}", oauth_signature_method="HMAC-SHA1", oauth_timestamp="${Math.floor(new Date().getTime() / 1000)}", oauth_nonce="${Math.random().toString(36).substring(7)}", oauth_version="1.0"`
+  return new Promise((resolve, reject) => {
+    twitterOAuth.get(url, oauthAccessToken, oauthAccessTokenSecret, (error, data, response) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(JSON.parse(data));
       }
     });
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching tweets:', error.response ? error.response.data : error.message);
-  }
+  });
 };
 
 // Function to send Telegram message
@@ -129,15 +128,19 @@ const sendTelegramMessage = (message) => {
 // Function to check for new tweets
 let lastTweetId = null;
 const checkForNewTweets = async () => {
-  const tweets = await fetchLatestTweets(twitterHandle);
-  if (tweets && tweets.length > 0) {
-    const latestTweet = tweets[0];
-    if (latestTweet.id_str !== lastTweetId) {
-      console.log('New tweet found:', latestTweet.text);
-      // Send Telegram notification
-      sendTelegramMessage(`New tweet from ${twitterHandle}: ${latestTweet.text}`);
-      lastTweetId = latestTweet.id_str;
+  try {
+    const tweets = await fetchLatestTweets(twitterHandle);
+    if (tweets && tweets.length > 0) {
+      const latestTweet = tweets[0];
+      if (latestTweet.id_str !== lastTweetId) {
+        console.log('New tweet found:', latestTweet.text);
+        // Send Telegram notification
+        sendTelegramMessage(`New tweet from ${twitterHandle}: ${latestTweet.text}`);
+        lastTweetId = latestTweet.id_str;
+      }
     }
+  } catch (error) {
+    console.error('Error fetching tweets:', error);
   }
 };
 
