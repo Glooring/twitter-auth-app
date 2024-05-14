@@ -27,16 +27,6 @@ let oauthAccessTokenSecret = '';
 let twitterHandle = 'TheRoaringKitty';
 
 
-// Initialize OAuth
-const twitterOAuth = new OAuth(
-  'https://api.twitter.com/oauth/request_token',
-  'https://api.twitter.com/oauth/access_token',
-  consumerKey,
-  consumerSecret,
-  '1.0A',
-  callbackURL,
-  'HMAC-SHA1'
-);
 
 // Handle the /start command
 bot.onText(/\/start/, (msg) => {
@@ -57,6 +47,16 @@ bot.onText(/\/new/, (msg) => {
   });
 });
 
+// Initialize OAuth
+const twitterOAuth = new OAuth(
+  'https://api.twitter.com/oauth/request_token',
+  'https://api.twitter.com/oauth/access_token',
+  consumerKey,
+  consumerSecret,
+  '1.0A',
+  callbackURL,
+  'HMAC-SHA1'
+);
 
 
 // Twitter authentication route
@@ -75,13 +75,15 @@ app.get('/callback', (req, res) => {
   const oauthToken = req.query.oauth_token;
   const oauthVerifier = req.query.oauth_verifier;
   twitterOAuth.getOAuthAccessToken(oauthToken, null, oauthVerifier, (error, _oauthAccessToken, _oauthAccessTokenSecret, results) => {
-      if (error) {
-          res.send('Authentication failed!');
-      } else {
-          oauthAccessToken = _oauthAccessToken;
-          oauthAccessTokenSecret = _oauthAccessTokenSecret;
-          res.send('Authentication successful!');
-      }
+    if (error) {
+      res.send('Authentication failed!');
+    } else {
+      oauthAccessToken = _oauthAccessToken;
+      oauthAccessTokenSecret = _oauthAccessTokenSecret;
+      res.send('Authentication successful!');
+      // Notify the Telegram chat that authentication was successful
+      sendTelegramMessage('Twitter authentication successful! The bot is now tracking tweets.');
+    }
   });
 });
 
@@ -130,13 +132,13 @@ const sendTelegramMessage = (message) => {
 // Function to check for new tweets
 let lastTweetId = null;
 const checkForNewTweets = async () => {
-  const tweets = await fetchLatestTweets('TheRoaringKitty');
+  const tweets = await fetchLatestTweets(twitterHandle);
   if (tweets && tweets.length > 0) {
     const latestTweet = tweets[0];
     if (latestTweet.id_str !== lastTweetId) {
       console.log('New tweet found:', latestTweet.text);
       // Send Telegram notification
-      sendTelegramMessage(`New tweet from TheRoaringKitty: ${latestTweet.text}`);
+      sendTelegramMessage(`New tweet from ${twitterHandle}: ${latestTweet.text}`);
       lastTweetId = latestTweet.id_str;
     }
   }
